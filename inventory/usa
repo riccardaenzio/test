@@ -67,14 +67,4 @@ all:
       hosts:
         itmijemc07.mapei.group
 
-  vars:
-    ansible_user: svc_scomact@MAPEI.GROUP
-    ansible_password: 0P3rat10nAct10n
-    ansible_port: 5985
-    ansible_connection: winrm
-    ansible_winrm_server_cert_validation: ignore
-    ansible_winrm_transport: ntlm
-    ansible_winrm_operation_timeout_sec: 120
-    ansible_winrm_read_timeout_sec: 130
-
                                                                                                                         

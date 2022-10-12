@@ -1,0 +1,80 @@
+
+
+all:
+  hosts:
+
+    USAZTMPAP02.mapei.group:
+    USCASBAP02.mapei.group:
+    USFLCONSOLEMGMT.mapei.group:
+    USFLDFBBRIDGE.mapei.group:
+    USFLDFBCMSCAN.mapei.group:
+    USFLDFBCSRADIUS.mapei.group:
+    USFLDFBCUCMBK.mapei.group:
+    USFLDFBDAMEWARE.mapei.group:
+    USFLDFBEXCH16.mapei.group:
+    USFLDFBFS01.mapei.group:
+    USFLDFBFS02.mapei.group:
+    USFLDFBFTP01.mapei.group:
+    USFLDFBLIBRARY.mapei.group:
+    USFLDFBPCMILER.mapei.group:
+    USFLDFBPOWERBI.mapei.group:
+    USFLDFBPR01.mapei.group:
+    USFLDFBPRTRONIX.mapei.group:
+    USFLDFBRADIUS.mapei.group:
+    USFLDFBREBATES.mapei.group:
+    USFLDFBSMTP.mapei.group:
+    USFLDFBSTCON.mapei.group:
+    USFLFLAP09.mapei.group:
+    USFLFLAP15.mapei.group:
+    USFLFLCERT01.mapei.group:
+    USFLFLDC01.mapei.group:
+    USFLFLDC02.mapei.group:
+    USFLFLDC03.mapei.group:
+    USFLFLDC04.mapei.group:
+    USFLFLDHCP01.mapei.group:
+    USFLFLDHCP01.mapei.group:
+    USFLFLEXCH13.mapei.group:
+    USFLFLLAP01.mapei.group:
+    USFLFLPR01.mapei.group:
+    USFLFLSCCM01.mapei.group:
+    USFLFLSCCMSUP.mapei.group:
+    USFLFLSQL01.mapei.group:
+    USFLFLWSUS01.mapei.group:
+    USFLMIMA01.mapei.group:
+    USFLWILAP01.mapei.group:
+    USGADAAP03.mapei.group:
+    USGADALAP01.mapei.group:
+    USILOPTESSAAPP.mapei.group:
+    USILOPTESSASQL.mapei.group:
+    USILWCAP01.mapei.group:
+    USILWCAP02.mapei.group:
+    USMNEAAP01.mapei.group:
+    USNJSWAP01.mapei.group:
+    USPAHAAP01.mapei.group:
+    USPGAZAP01.mapei.group:
+    USPGDFBAP01.mapei.group:
+    USPGDFBFS01.mapei.group:
+    USPGWHAP01.mapei.group:
+    USTXGAAP01.mapei.group:
+    USTXWAAP01.mapei.group:
+
+
+  children:
+    scom:
+      hosts:
+        itmidcscom02.mapei.group:
+    vmm:
+      hosts:
+        itmijemc07.mapei.group
+
+  vars:
+    ansible_user: svc_scomact@MAPEI.GROUP
+    ansible_password: 0P3rat10nAct10n
+    ansible_port: 5985
+    ansible_connection: winrm
+    ansible_winrm_server_cert_validation: ignore
+    ansible_winrm_transport: ntlm
+    ansible_winrm_operation_timeout_sec: 120
+    ansible_winrm_read_timeout_sec: 130
+
+                                                                                                                        

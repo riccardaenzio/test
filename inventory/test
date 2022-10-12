@@ -1,0 +1,22 @@
+
+
+all:
+  hosts:
+
+    PTMACASRODC01.mapei.group:
+    PTMACASMA01.mapei.group:
+    PTMACASPHC01.mapei.group:
+    PTMACASFS01.mapei.group:
+
+
+#    czmaoloma01.mapei.group:
+#    ptmacasfs01.mapei.group:
+
+  children:
+    scom:
+      hosts:
+        itmidcscom02.mapei.group:
+    vmm:
+      hosts:
+        itmijemc07.mapei.group
+

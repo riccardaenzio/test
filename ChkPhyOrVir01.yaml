@@ -48,11 +48,13 @@
           )
 
                 #Process
-                $result = Get-CimInstance -Class CIM_ComputerSystem -ErrorAction Stop | Select-Object  SystemFamily
+                $result = Get-CimInstance -Class CIM_ComputerSystem -ErrorAction Stop | select Name, Model, SystemFamily, DNSHostName
 
-                $contentToInsert = $result.SystemFamily
+                $contentToInsert = $result | ConvertTo-Json 
+                #Write-Output  "$contentToInsert" 
+                #$contentToInsert | out-file C:\TEMP\systemfamily.txt
+                #$result = [IO.File]::ReadAllText("c:\TEMP\systemfamily.txt")
                 Write-Output $contentToInsert
-
 
         parameters:
           xsysname: "{{ ansible_host }}"   
@@ -60,10 +62,16 @@
 #      delegate_facts: true
       register: resultfamily
 
+#Section to encode returned value
+    - name: Process PS out
+      set_fact:
+        resultf: "{{ resultfamily.output | join('') | from_json  }}"
+#end section
+
 #This section print out the result
     - name: Print info    
       debug:
-        msg: " {{ ansible_host }} and {{ resultfamily }} "
+        msg: " {{ ansible_host }} and {{ resultf.SystemFamily }} "
 
 #end section
 
@@ -71,5 +79,5 @@
 #This section close the script
     - name: Write message
       debug:
-        msg: "END** for {{ vmsavevmm_part }}" 
+        msg: "END** for {{ ansible_host }}" 
 

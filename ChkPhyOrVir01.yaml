@@ -1,0 +1,75 @@
+---
+- name: Test Remote PATCHES Check
+  hosts: ungrouped
+  serial: 30
+  become_method: runas
+  gather_facts: no
+
+  pre_tasks:
+    - setup:
+        gather_subset: 'date_time'
+
+  tasks:
+
+#This section create name file variable
+#    - name: Create base name
+#      set_fact:
+#        vmsavevmm_part: "{{ ansible_host.split(\".\")[0] | upper }}"
+#    - name: Create cmplete path
+#      set_fact:
+#        vmsavevmm_complete: "c:\\temp\\PatchingV11_{{ vmsavevmm_part }}_LIST_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt"
+#
+#
+#
+#    - name: Write message
+#      debug:
+#        msg: "Getting Updates situation for {{ vmsavevmm_part }}" 
+#    - name: Write message
+#      debug:
+#        msg: "The complete path to gather info is {{ vmsavevmm_complete }}"
+#end section
+
+#This section list alla available updates
+#    - name: List available patches
+#      win_updates:
+#        state: searched
+#        log_path: c:\temp\PatchingV11_{{ vmsavevmm_part }}_LIST_{{ansible_date_time.date}}_{{ansible_date_time.hour}}{{ansible_date_time.minute}}{{ansible_date_time.second}}.txt
+#end section
+
+
+#This section get info about the system
+    - name: Run remote powershell
+      ansible.windows.win_powershell:
+        script: |
+          [CmdletBinding()]
+          param (
+          [String]
+          $xsysname
+          )
+
+                #Process
+                $result = Get-CimInstance -Class CIM_ComputerSystem -ErrorAction Stop | Select-Object  SystemFamily
+
+                $contentToInsert = $result.SystemFamily
+                Write-Output $contentToInsert
+
+
+        parameters:
+          xsysname: "{{ ansible_host }}"   
+#      delegate_to: itmijemc07.mapei.group  
+#      delegate_facts: true
+      register: resultfamily
+
+#This section print out the result
+    - name: Print info    
+      debug:
+        msg: " {{ ansible_host }} and {{ resultfamily }} "
+
+#end section
+
+
+#This section close the script
+    - name: Write message
+      debug:
+        msg: "END** for {{ vmsavevmm_part }}" 
+

@@ -3,8 +3,8 @@
 all:
   hosts:
 
-    USFLFLDC01.mapei.group:
-    USFLFLDC02.mapei.group:
+    USFLFLDC01.root.group:
+    USFLFLDC02.root.group:
     USFLFLDC03.mapei.group:
     USFLFLDC04.mapei.group:
 

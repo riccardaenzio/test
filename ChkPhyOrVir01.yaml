@@ -1,7 +1,7 @@
 ---
 - name: Test Remote PATCHES Check
   hosts: ungrouped
-  serial: 30
+  serial: 99
   become_method: runas
   gather_facts: no
 

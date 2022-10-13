@@ -1,0 +1,109 @@
+---
+- name: Test Reboot Server
+  hosts: ungrouped
+  serial: 20
+  become_method: runas
+  gather_facts: true
+  tasks:
+                                                                      
+#Hold the host name before going to SCOM
+    - name: Hold host name
+      set_fact:
+        vmsave: "{{ ansible_host }}"
+    - name: Print info vmsave   
+      debug:
+#        msg: Saved hostname {{ vmsave }} 
+        msg: "Saved hostname {{ vmsave }} {{ lookup('pipe', 'date +%Y-%m-%d@$H:%M:%S') }}"
+
+
+
+#Hold the host name before going to SCOM
+    - name: Hold host name for snapshot
+      set_fact:
+        vmsavevmm: "{{ ansible_host }}"
+    - name: Print info vmsavevmm   
+      debug:
+        msg: Saved hostname {{ vmsavevmm }} 
+
+#This section try to make snapshot of the system
+    - name: Run remote powershell on VMM
+      ansible.windows.win_powershell:
+        script: |
+          [CmdletBinding()]
+          param (
+          [String]
+          $xsysname
+          )
+
+                $globalmtx = New-Object System.Threading.Mutex($false, 'GlobalSNAPMutex')
+                #Acquire mutex
+                while ($globalmtx.WaitOne(100)  -eq $false) {
+
+                  #Write-Verbose  -Message "Waiting on scheduled task..."
+                  Start-Sleep -Seconds 10
+                  #Write-Output "Sleep 10 seconds"
+                }
+
+
+                #Process
+                $xsysname | out-file C:\TOOLS\system.txt
+
+                Start-ScheduledTask -TaskPath '\Mapei' -TaskName "SnapshotVMM"
+
+
+                while ((Get-ScheduledTask -TaskName "SnapshotVMM").State  -ne 'Ready') {
+
+                  #Write-Verbose  -Message "Waiting on scheduled task..."
+                  Start-Sleep -Seconds 10
+                }
+
+                #get-content C:\tools\snapresult.txt
+                $contentToInsert = [IO.File]::ReadAllText("c:\tools\snapresult.txt")
+                Write-Output $contentToInsert
+
+
+                #Release mutex
+                $globalmtx.ReleaseMutex()
+                $globalmtx.Close()
+
+
+        parameters:
+          xsysname: "{{ vmsavevmm }}"   
+      delegate_to: itmijemc07.mapei.group  
+      delegate_facts: true
+      register: resultvmm
+
+#end section
+
+#Section to check return value from snapshot
+    - name: Process PS out
+      set_fact:
+        vmname: "{{ resultvmm.output | join('') | from_json  }}"
+    - name: Print info    
+      debug:
+        msg: " {{ vmname.name}} and {{ vmname.info}} and {{ vmname.status}} "
+#This task interrupt playbook for the system that has problems
+    - name: Example of failure
+      fail:
+        msg: "This system  has a failure {{ ansible_host }}"
+      when: vmname.status == "ERROR"  
+
+#end section
+
+#This section list alla available update
+    - name: List patches STEP01
+      win_updates:
+        state: searched
+        log_path: c:\temp\PatchingV11_LIST_{{ansible_date_time.date}}_{{ansible_date_time.hour}}{{ansible_date_time.minute}}{{ansible_date_time.second}}.txt
+#end section
+
+#This section is about windows update
+    - setup:
+    - debug:
+        var: ansible_date_time  
+    - name: Download patches STEP01
+      win_updates:
+        state: downloaded
+        log_path: c:\temp\PatchingV11_DOWNLOAD_{{ansible_date_time.date}}_{{ansible_date_time.hour}}{{ansible_date_time.minute}}{{ansible_date_time.second}}.txt
+#end section
+

@@ -1,0 +1,235 @@
+---
+- name: Test Reboot Server
+  hosts: ungrouped
+  serial: 20
+  become_method: runas
+  gather_facts: true
+  tasks:
+
+#Hold the host name before going to SCOM
+    - name: Hold host name
+      set_fact:
+        vmsave: "{{ ansible_host }}"
+    - name: Print info vmsave   
+      debug:
+#        msg: Saved hostname {{ vmsave }} 
+        msg: " Saved hostname {{ vmsave }} "
+
+
+
+
+
+#This section is about remote powershell to SCOM
+    - name: Run remote powershell on SCOM to set maintenance
+#      setup:
+#      debug:
+#        var: ansible_date_time   
+      ignore_errors: yes
+      ansible.windows.win_powershell:
+        script: |
+          [CmdletBinding()]
+          param (
+              [String]
+              $sysname
+          )
+          Write-Host("Hello")
+          Import-Module OperationsManager
+          New-SCOMManagementGroupConnection -ComputerName "ITMIDCSCOM02"
+          $Servers = $sysname
+          $instanceclass = Get-SCOMClass -Name Microsoft.Windows.Computer
+          $Time = ((Get-Date).AddHours(8))
+          $Instance = Get-SCOMClassInstance -class $instanceclass | Where-Object {$_.DisplayName -match $Servers}
+          Start-SCOMMaintenanceMode -Instance $Instance -EndTime $Time -Comment "PatchingV11 Ansible"
+        parameters:
+          sysname: "{{ vmsave }}" 
+      delegate_to: itmidcscom02.mapei.group  
+#end section
+
+
+#Hold the host name before going to SCOM
+    - name: Hold host name for snapshot
+      set_fact:
+        vmsavevmm: "{{ ansible_host }}"
+    - name: Print info vmsavevmm   
+      debug:
+        msg: Saved hostname {{ vmsavevmm }} 
+
+
+
+#This section is about reboot after windows update download
+    - name: Reboot server 
+      win_reboot:
+        reboot_timeout: 64000
+
+    - name: Check if Windows Update Process is busy
+      win_shell: (New-Object -ComObject Microsoft.Update.Session).CreateUpdateInstaller().IsBusy
+      become: yes
+      become_user: SYSTEM
+      ignore_errors: yes
+
+    - name: Make sure connection is available
+      wait_for_connection: 
+      timeout: 6000
+#        test_command: '(Get-Service -Name NetLogon).Status -eq "Running"'
+
+#      - name: scriptoutput
+#        debug: var=scriptout.stdout
+#end section
+
+#This section is about STEP01 install
+#    - name: Install patches STEP01
+#      win_updates:
+#        category_names: '*'
+##          - SecurityUpdates
+##          - CriticalUpdates
+##          - UpdateRollups
+#        log_path: c:\temp\PatchingV11_INSTALL_{{ansible_date_time.date}}_{{ansible_date_time.hour}}{{ansible_date_time.minute}}{{ansible_date_time.second}}.txt 
+##2022/10/04 no reboot STEP01        reboot: yes
+##2022/10/04 no reboot STEP01        reboot_timeout: 64000
+#end section
+
+#This section installs patches
+    - name: Install patches STEP01 with powershell
+      ignore_errors: yes
+      ansible.windows.win_powershell:
+        script: |
+          [CmdletBinding()]
+          param (
+              [String]
+              $sysname
+          )
+
+          $Criteria = "IsInstalled=0 and IsHidden=0"
+          $Searcher = New-Object -ComObject Microsoft.Update.Searcher
+          $SearchResult = $Searcher.Search($Criteria).Updates
+          $Session = New-Object -ComObject Microsoft.Update.Session
+          $Downloader = $Session.CreateUpdateDownloader()
+          $Downloader.Updates = $SearchResult
+          $Downloader.Download()
+          $Installer = New-Object -ComObject Microsoft.Update.Installer
+          $Installer.Updates = $SearchResult
+          $Result = $Installer.Install()
+#END SCRIPT
+
+
+        parameters:
+          sysname: "{{ vmsave }}"
+#      delegate_to: itmidcscom02.mapei.group
+      become: yes
+      become_user: SYSTEM
+
+#end section
+
+#This section is about reboot after windows update
+    - name: Reboot server and wait updates apply STEP01
+      win_reboot:
+        reboot_timeout: 64000
+
+    - name: Check if Windows Update Process is busy
+      win_shell: (New-Object -ComObject Microsoft.Update.Session).CreateUpdateInstaller().IsBusy
+      become: yes
+      become_user: SYSTEM
+      ignore_errors: yes
+
+    - name: Make sure connection is available
+      wait_for_connection: 
+      timeout: 6000
+#        test_command: '(Get-Service -Name NetLogon).Status -eq "Running"'
+
+#      - name: scriptoutput
+#        debug: var=scriptout.stdout
+#end section
+
+#This section list alla available update
+    - name: List patches STEP02
+      ignore_errors: yes
+      win_updates:
+        state: searched
+        log_path: c:\temp\PatchingV11_LIST_{{ansible_date_time.date}}_{{ansible_date_time.hour}}{{ansible_date_time.minute}}{{ansible_date_time.second}}.txt
+#end section
+
+#This section is about windows update
+    - name: Download patches STEP02
+      win_updates:
+        state: downloaded
+        log_path: c:\temp\PatchingV11_DOWNLOAD02_{{ansible_date_time.date}}_{{ansible_date_time.hour}}{{ansible_date_time.minute}}{{ansible_date_time.second}}.txt
+
+
+#This section is about STEP02 install
+    - name: Install patches STEP02
+      win_updates:
+        category_names: '*'
+#          - SecurityUpdates
+#          - CriticalUpdates
+#          - UpdateRollups
+        log_path: c:\temp\PatchingV11_INSTALL02_{{ansible_date_time.date}}_{{ansible_date_time.hour}}{{ansible_date_time.minute}}{{ansible_date_time.second}}.txt 
+        reboot: yes
+        reboot_timeout: 64000
+#end section
+
+#This section is about reboot after windows update
+    - name: Reboot server and wait updates apply STEP02
+      win_reboot:
+        reboot_timeout: 64000
+
+    - name: Check if Windows Update Process is busy
+      win_shell: (New-Object -ComObject Microsoft.Update.Session).CreateUpdateInstaller().IsBusy
+      become: yes
+      become_user: SYSTEM
+      ignore_errors: yes
+
+    - name: Make sure connection is available
+      wait_for_connection: 
+      timeout: 6000
+#        test_command: '(Get-Service -Name NetLogon).Status -eq "Running"'
+
+#      - name: scriptoutput
+#        debug: var=scriptout.stdout
+#end section
+
+#This section list alla available update
+    - name: List patches STEP03
+      ignore_errors: yes
+      win_updates:
+        state: searched
+        log_path: c:\temp\PatchingV11_LIST03_{{ansible_date_time.date}}_{{ansible_date_time.hour}}{{ansible_date_time.minute}}{{ansible_date_time.second}}.txt
+#end section
+
+#This section is about windows update
+    - name: Download patches STEP03
+      win_updates:
+        state: downloaded
+        log_path: c:\temp\PatchingV11_DOWNLOAD03_{{ansible_date_time.date}}_{{ansible_date_time.hour}}{{ansible_date_time.minute}}{{ansible_date_time.second}}.txt
+
+
+#This section is about STEP03 install
+    - name: Install patches STEP03
+      win_updates:
+        category_names: '*'
+#          - SecurityUpdates
+#          - CriticalUpdates
+#          - UpdateRollups
+        log_path: c:\temp\PatchingV11_INSTALL03_{{ansible_date_time.date}}_{{ansible_date_time.hour}}{{ansible_date_time.minute}}{{ansible_date_time.second}}.txt 
+        reboot: yes
+        reboot_timeout: 64000
+ #end section
+
+#This section is about reboot after windows update
+    - name: Reboot server and wait updates apply STEP03
+      win_reboot:
+        reboot_timeout: 64000
+
+    - name: Check if Windows Update Process is busy
+      win_shell: (New-Object -ComObject Microsoft.Update.Session).CreateUpdateInstaller().IsBusy
+      become: yes
+      become_user: SYSTEM
+      ignore_errors: yes
+
+    - name: Make sure connection is available
+      wait_for_connection: 
+      timeout: 6000
+#        test_command: '(Get-Service -Name NetLogon).Status -eq "Running"'
+
+#      - name: scriptoutput
+#        debug: var=scriptout.stdout
+#end section

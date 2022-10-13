@@ -1,0 +1,20 @@
+
+
+all:
+  hosts:
+
+    USFLFLDC01.mapei.group:
+    USFLFLDC02.mapei.group:
+    USFLFLDC03.mapei.group:
+    USFLFLDC04.mapei.group:
+
+
+  children:
+    scom:
+      hosts:
+        itmidcscom02.mapei.group:
+    vmm:
+      hosts:
+        itmijemc07.mapei.group
+
+                                                                                                                        
